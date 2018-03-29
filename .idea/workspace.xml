@@ -66,8 +66,8 @@
       <file leaf-file-name="helpers.py" pinned="false" current="true" current-in-tab="true">
         <entry file="file://$PROJECT_DIR$/data/helpers.py">
           <provider selected="true" editor-type-id="text-editor">
-            <state vertical-scroll-proportion="1.1734213" vertical-offset="0" max-vertical-offset="1335">
-              <caret line="83" column="15" selection-start-line="83" selection-start-column="15" selection-end-line="83" selection-end-column="15" />
+            <state vertical-scroll-proportion="0.48067862" vertical-offset="0" max-vertical-offset="1335">
+              <caret line="34" column="22" selection-start-line="34" selection-start-column="22" selection-end-line="34" selection-end-column="22" />
               <folding>
                 <element signature="e#24#34#0" expanded="true" />
               </folding>
@@ -360,8 +360,8 @@
     </entry>
     <entry file="file://$PROJECT_DIR$/data/helpers.py">
       <provider selected="true" editor-type-id="text-editor">
-        <state vertical-scroll-proportion="1.1734213" vertical-offset="0" max-vertical-offset="1335">
-          <caret line="83" column="15" selection-start-line="83" selection-start-column="15" selection-end-line="83" selection-end-column="15" />
+        <state vertical-scroll-proportion="0.48067862" vertical-offset="0" max-vertical-offset="1335">
+          <caret line="34" column="22" selection-start-line="34" selection-start-column="22" selection-end-line="34" selection-end-column="22" />
           <folding>
             <element signature="e#24#34#0" expanded="true" />
           </folding>
