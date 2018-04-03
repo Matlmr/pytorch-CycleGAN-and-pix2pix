@@ -1,5 +1,5 @@
 import os.path
-from data.base_dataset import BaseDataset, get_transform
+from data.base_dataset import BaseDataset, get_transform, get_crop
 from data.image_folder import make_dataset
 from PIL import Image
 import random
@@ -11,18 +11,25 @@ class UnalignedDataset(BaseDataset):
         self.root = opt.dataroot
         self.dir_A = os.path.join(opt.dataroot, opt.phase + 'A')
         self.dir_B = os.path.join(opt.dataroot, opt.phase + 'B')
+        self.dir_gtA = os.path.join(opt.dataroot, 'gt' + 'A')
 
         self.A_paths = make_dataset(self.dir_A)
         self.B_paths = make_dataset(self.dir_B)
+        self.gtA_paths = make_dataset(self.dir_gtA)
 
         self.A_paths = sorted(self.A_paths)
         self.B_paths = sorted(self.B_paths)
+        self.gtA_paths = sorted(self.gtA_paths)
         self.A_size = len(self.A_paths)
         self.B_size = len(self.B_paths)
+        self.gtA_size = len(self.gtA_paths)
+        assert(self.A_size == self.gtA_size)
         self.transform = get_transform(opt)
+
 
     def __getitem__(self, index):
         A_path = self.A_paths[index % self.A_size]
+        gtA_path = self.gtA_paths[index % self.gtA_size]
         if self.opt.serial_batches:
             index_B = index % self.B_size
         else:
@@ -31,9 +38,16 @@ class UnalignedDataset(BaseDataset):
         # print('(A, B) = (%d, %d)' % (index_A, index_B))
         A_img = Image.open(A_path).convert('RGB')
         B_img = Image.open(B_path).convert('RGB')
+        gtA_img = Image.open(gtA_path).convert('L')
 
         A = self.transform(A_img)
         B = self.transform(B_img)
+        gtA = self.transform(gtA_img)
+
+        if self.opt.crop_mask:
+            crop = get_crop(gtA)
+            A, gtA = crop(A)
+
         if self.opt.which_direction == 'BtoA':
             input_nc = self.opt.output_nc
             output_nc = self.opt.input_nc
@@ -49,7 +63,7 @@ class UnalignedDataset(BaseDataset):
             tmp = B[0, ...] * 0.299 + B[1, ...] * 0.587 + B[2, ...] * 0.114
             B = tmp.unsqueeze(0)
         return {'A': A, 'B': B,
-                'A_paths': A_path, 'B_paths': B_path}
+                'A_paths': A_path, 'B_paths': B_path, 'gtA': gtA}
 
     def __len__(self):
         return max(self.A_size, self.B_size)

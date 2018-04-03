@@ -1,8 +1,12 @@
 import torch.utils.data as data
 from PIL import Image
 import torchvision.transforms as transforms
-import data.custom_transforms as custom
+import data.custom_transforms as tr
 
+
+#Setting parameters
+relax_crop = 50
+zero_pad_crop = True
 
 class BaseDataset(data.Dataset):
     def __init__(self):
@@ -34,9 +38,14 @@ def get_transform(opt):
     if opt.isTrain and not opt.no_flip:
         transform_list.append(transforms.RandomHorizontalFlip())
 
-    transform_list += [custom.CropFromMask,transforms.ToTensor(),
+    transform_list += [transforms.ToTensor(),
                        transforms.Normalize((0.5, 0.5, 0.5),
                                             (0.5, 0.5, 0.5))]
+    return transforms.Compose(transform_list)
+
+def get_crop(target):
+    transform_list =[]
+    transform_list.append(tr.CropFromMask(target, relax=relax_crop, zero_pad=zero_pad_crop))
     return transforms.Compose(transform_list)
 
 

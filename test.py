@@ -16,7 +16,10 @@ dataset = data_loader.load_data()
 model = create_model(opt)
 visualizer = Visualizer(opt)
 # create website
-web_dir = os.path.join(opt.results_dir, opt.name, '%s_%s' % (opt.phase, opt.which_epoch))
+if opt.my_html:
+    web_dir = os.path.join("../../../../home/lamarrem/public_html")
+else:
+    web_dir = os.path.join(opt.results_dir, opt.name, '%s_%s' % (opt.phase, opt.which_epoch))
 webpage = html.HTML(web_dir, 'Experiment = %s, Phase = %s, Epoch = %s' % (opt.name, opt.phase, opt.which_epoch))
 # test
 for i, data in enumerate(dataset):
