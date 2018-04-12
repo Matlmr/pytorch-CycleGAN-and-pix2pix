@@ -73,9 +73,9 @@ class CycleGANModel(BaseModel):
         input_A = input['A' if AtoB else 'B']
         input_B = input['B' if AtoB else 'A']
         self.gt_A = input['gtA' if AtoB else 'gtB']
-        self.gt_A = self.gt_A[:,0:1,:,:]
+        #self.gt_A = self.gt_A[:,0:1,:,:]
         self.gt_B = input['gtB' if AtoB else 'gtA']
-        self.gt_B = self.gt_B[:,0:1,:,:]
+        #self.gt_B = self.gt_B[:,0:1,:,:]
         if self.opt.input_nc == 4:
             input_A = torch.cat((input_A,self.gt_A),dim=1)
             #input_A = input_A[:,0:4,:,:]
@@ -128,15 +128,15 @@ class CycleGANModel(BaseModel):
     def backward_D_A(self):
         fake_B = self.fake_B_pool.query(self.fake_B)
         real_Bdis = self.real_B if self.opt.mask_dis else self.real_B[:,0:3,:,:]
-        fake_Bdis = torch.cat((fake_B,self.gt_A),dim=1) if self.opt.mask_dis else fake_B
-        loss_D_A = self.backward_D_basic(self.netD_A, self.real_Bdis, fake_Bdis)
+        fake_Bdis = fake_B if self.opt.mask_dis else fake_B[:,0:3,:,:]
+        loss_D_A = self.backward_D_basic(self.netD_A, real_Bdis, fake_Bdis)
         self.loss_D_A = loss_D_A.data[0]
 
     def backward_D_B(self):
         fake_A = self.fake_A_pool.query(self.fake_A)
         real_Adis = self.real_A if self.opt.mask_dis else self.real_A[:,0:3,:,:]
-        fake_Adis = torch.cat((fake_A,self.gt_B),dim=1) if self.opt.mask_dis else fake_A
-        loss_D_B = self.backward_D_basic(self.netD_B, self.real_Adis, fake_Adis)
+        fake_Adis = fake_A if self.opt.mask_dis else fake_A[:,0:3,:,:]
+        loss_D_B = self.backward_D_basic(self.netD_B, real_Adis, fake_Adis)
         self.loss_D_B = loss_D_B.data[0]
 
     def backward_G(self):
@@ -164,16 +164,20 @@ class CycleGANModel(BaseModel):
 
         # GAN loss D_A(G_A(A))
         fake_B = self.netG_A(self.real_A)
+        if self.opt.mask_dis:
+            fake_B = Variable(torch.cat((fake_B.data.cpu(),self.gt_A),dim=1))
         pred_fake = self.netD_A(fake_B)
         loss_G_A = self.criterionGAN(pred_fake, True)
 
         # GAN loss D_B(G_B(B))
         fake_A = self.netG_B(self.real_B)
+        if self.opt.mask_dis:
+            fake_A = Variable(torch.cat((fake_A.data.cpu(),self.gt_B),dim=1))
         pred_fake = self.netD_B(fake_A)
         loss_G_B = self.criterionGAN(pred_fake, True)
 
         # Forward cycle loss
-        if self.opt.input_nc == 4:
+        if self.opt.input_nc == 4 and not self.opt.mask_dis:
             fake_B = Variable(torch.cat((fake_B.data.cpu(),self.gt_A),dim=1))
             rec_A = self.netG_B(fake_B)
         else:
@@ -181,7 +185,7 @@ class CycleGANModel(BaseModel):
         loss_cycle_A = self.criterionCycle(rec_A, self.real_Am) * lambda_A
 
         # Backward cycle loss
-        if self.opt.input_nc == 4:
+        if self.opt.input_nc == 4 and not self.opt.mask_dis:
             fake_A = Variable(torch.cat((fake_A.data.cpu(),self.gt_B),dim=1))
             rec_B = self.netG_A(fake_A)
         else:
@@ -217,6 +221,8 @@ class CycleGANModel(BaseModel):
         self.backward_D_B()
         self.optimizer_D_B.step()
 
+        assert (1 == 0)
+
     def get_current_errors(self):
         ret_errors = OrderedDict([('D_A', self.loss_D_A), ('G_A', self.loss_G_A), ('Cyc_A', self.loss_cycle_A),
                                   ('D_B', self.loss_D_B), ('G_B', self.loss_G_B), ('Cyc_B', self.loss_cycle_B)])
@@ -234,8 +240,10 @@ class CycleGANModel(BaseModel):
         fake_A = util.tensor2im(self.fake_A)
         rec_B = util.tensor2im(self.rec_B)
         gt_B = util.tensor2im(self.gt_B)
-        ret_visuals = OrderedDict([('real_A', real_A), ('fake_B', fake_B), ('rec_A', rec_A), ('gt_A', gt_A),
-                                   ('real_B', real_B), ('fake_A', fake_A), ('rec_B', rec_B), ('gt_B', gt_B)])
+        #ret_visuals = OrderedDict([('real_A', real_A), ('fake_B', fake_B), ('rec_A', rec_A), ('gt_A', gt_A),
+        #                           ('real_B', real_B), ('fake_A', fake_A), ('rec_B', rec_B), ('gt_B', gt_B)])
+        ret_visuals = OrderedDict([('real_A', real_A), ('fake_B', fake_B), ('rec_A', rec_A),
+                                   ('real_B', real_B), ('fake_A', fake_A), ('rec_B', rec_B)])
         if self.opt.isTrain and self.opt.lambda_identity > 0.0:
             ret_visuals['idt_A'] = util.tensor2im(self.idt_A)
             ret_visuals['idt_B'] = util.tensor2im(self.idt_B)

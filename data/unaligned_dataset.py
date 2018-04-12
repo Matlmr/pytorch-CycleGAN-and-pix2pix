@@ -50,14 +50,24 @@ class UnalignedDataset(BaseDataset):
         gtB_path = self.gtB_paths[index_B]
         # print('(A, B) = (%d, %d)' % (index_A, index_B))
         A_img = Image.open(A_path).convert('RGB')
-        #print(A_img.size)
         B_img = Image.open(B_path).convert('RGB')
         gtA_img = Image.open(gtA_path).convert('L')
         gtB_img = Image.open(gtB_path).convert('L')
+
+        #gtA_img.show()
+        #gtB_img.show()
+
         colors = arange(256) * 0 + 255
         colors[0] = colors[1] = colors[2] = 0
-        gtA_img = gtA_img.point(colors)
+        #gtA_img = gtA_img.point(colors)
         gtB_img = gtB_img.point(colors)
+
+        #gtA_img.show()
+        #gtB_img.show()
+
+        #gtB_img = gtB_img.convert('1')
+
+        #gtB_img.show()
 
         if self.opt.crop_mask:
             
@@ -75,7 +85,7 @@ class UnalignedDataset(BaseDataset):
             # Zero padding in case the relevant part is near an edge
             if leftA < 0 or topA < 0 or rightA > widthA or botA > heightA:
                 padded_img1 = Image.new('RGB', (rightA-leftA, botA-topA), (0,0,0))
-                padded_img2 = Image.new('RGB', (rightA-leftA, botA-topA), (0,0,0))
+                padded_img2 = Image.new('L', (rightA-leftA, botA-topA), (0))
                 padded_img1.paste(A_img, (-min(0,leftA), -min(0,topA)))
                 padded_img2.paste(gtA_img, (-min(0,leftA), -min(0,topA)))
                 A_img = padded_img1
@@ -95,7 +105,7 @@ class UnalignedDataset(BaseDataset):
             # Zero padding in case the relevant part is near an edge
             if leftB < 0 or topB < 0 or rightB > widthB or botB > heightB:
                 padded_img1 = Image.new('RGB', (rightB-leftB, botB-topB), (0,0,0))
-                padded_img2 = Image.new('RGB', (rightB-leftB, botB-topB), (0,0,0))
+                padded_img2 = Image.new('L', (rightB-leftB, botB-topB), (0))
                 padded_img1.paste(B_img, (-min(0,leftB), -min(0,topB)))
                 padded_img2.paste(gtB_img, (-min(0,leftB), -min(0,topB)))
                 B_img = padded_img1
@@ -103,8 +113,8 @@ class UnalignedDataset(BaseDataset):
 
         A = self.transform(A_img)
         B = self.transform(B_img)
-        gtA = self.transform_mask(gtA_img)
-        gtB = self.transform_mask(gtB_img)
+        gtA = self.transform(gtA_img)
+        gtB = self.transform(gtB_img)
 
         if self.opt.which_direction == 'BtoA':
             input_nc = self.opt.output_nc
