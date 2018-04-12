@@ -20,15 +20,16 @@ class CycleGANModel(BaseModel):
 
         self.netG_A = networks.define_G(opt.input_nc, opt.output_nc,
                                         opt.ngf, opt.which_model_netG, opt.norm, not opt.no_dropout, opt.init_type, self.gpu_ids)
-        self.netG_B = networks.define_G(opt.output_nc, opt.input_nc,
+        self.netG_B = networks.define_G(opt.input_nc, opt.output_nc,
                                         opt.ngf, opt.which_model_netG, opt.norm, not opt.no_dropout, opt.init_type, self.gpu_ids)
 
         if self.isTrain:
             use_sigmoid = opt.no_lsgan
-            self.netD_A = networks.define_D(opt.output_nc, opt.ndf,
+            dis_input = opt.input_nc if opt.mask_dis else opt.output_nc
+            self.netD_A = networks.define_D(dis_input, opt.ndf,
                                             opt.which_model_netD,
                                             opt.n_layers_D, opt.norm, use_sigmoid, opt.init_type, self.gpu_ids)
-            self.netD_B = networks.define_D(opt.input_nc, opt.ndf,
+            self.netD_B = networks.define_D(dis_input, opt.ndf,
                                             opt.which_model_netD,
                                             opt.n_layers_D, opt.norm, use_sigmoid, opt.init_type, self.gpu_ids)
         if not self.isTrain or opt.continue_train:
@@ -71,9 +72,18 @@ class CycleGANModel(BaseModel):
         AtoB = self.opt.which_direction == 'AtoB'
         input_A = input['A' if AtoB else 'B']
         input_B = input['B' if AtoB else 'A']
+        self.gt_A = input['gtA' if AtoB else 'gtB']
+        self.gt_A = self.gt_A[:,0:1,:,:]
+        self.gt_B = input['gtB' if AtoB else 'gtA']
+        self.gt_B = self.gt_B[:,0:1,:,:]
+        if self.opt.input_nc == 4:
+            input_A = torch.cat((input_A,self.gt_A),dim=1)
+            #input_A = input_A[:,0:4,:,:]
+            input_B = torch.cat((input_B,self.gt_B),dim=1)
+            #input_B = input_B[:,0:4,:,:]
         if len(self.gpu_ids) > 0:
-            input_A = input_A.cuda(self.gpu_ids[0], async=True)
-            input_B = input_B.cuda(self.gpu_ids[0], async=True)
+            input_A = input_A.contiguous().cuda(self.gpu_ids[0], async=True)
+            input_B = input_B.contiguous().cuda(self.gpu_ids[0], async=True)
         self.input_A = input_A
         self.input_B = input_B
         self.image_paths = input['A_paths' if AtoB else 'B_paths']
@@ -81,17 +91,22 @@ class CycleGANModel(BaseModel):
     def forward(self):
         self.real_A = Variable(self.input_A)
         self.real_B = Variable(self.input_B)
+        # 4th channel sometimes not used
+        self.real_Am = self.real_A[:,0:3,:,:]
+        self.real_Bm = self.real_B[:,0:3,:,:]
 
     def test(self):
         real_A = Variable(self.input_A, volatile=True)
         fake_B = self.netG_A(real_A)
+        fake_B = fake_B if self.opt.input_nc != 4 else Variable(torch.cat((fake_B.data.cpu(),self.gt_A),dim=1))
         self.rec_A = self.netG_B(fake_B).data
-        self.fake_B = fake_B.data
+        self.fake_B = fake_B[:,0:3,:,:].data
 
         real_B = Variable(self.input_B, volatile=True)
         fake_A = self.netG_B(real_B)
+        fake_A = fake_A if self.opt.input_nc != 4 else Variable(torch.cat((fake_A.data.cpu(),self.gt_B),dim=1))
         self.rec_B = self.netG_A(fake_A).data
-        self.fake_A = fake_A.data
+        self.fake_A = fake_A[:,0:3,:,:].data        
 
     # get image paths
     def get_image_paths(self):
@@ -112,12 +127,16 @@ class CycleGANModel(BaseModel):
 
     def backward_D_A(self):
         fake_B = self.fake_B_pool.query(self.fake_B)
-        loss_D_A = self.backward_D_basic(self.netD_A, self.real_B, fake_B)
+        real_Bdis = self.real_B if self.opt.mask_dis else self.real_B[:,0:3,:,:]
+        fake_Bdis = torch.cat((fake_B,self.gt_A),dim=1) if self.opt.mask_dis else fake_B
+        loss_D_A = self.backward_D_basic(self.netD_A, self.real_Bdis, fake_Bdis)
         self.loss_D_A = loss_D_A.data[0]
 
     def backward_D_B(self):
         fake_A = self.fake_A_pool.query(self.fake_A)
-        loss_D_B = self.backward_D_basic(self.netD_B, self.real_A, fake_A)
+        real_Adis = self.real_A if self.opt.mask_dis else self.real_A[:,0:3,:,:]
+        fake_Adis = torch.cat((fake_A,self.gt_B),dim=1) if self.opt.mask_dis else fake_A
+        loss_D_B = self.backward_D_basic(self.netD_B, self.real_Adis, fake_Adis)
         self.loss_D_B = loss_D_B.data[0]
 
     def backward_G(self):
@@ -128,10 +147,10 @@ class CycleGANModel(BaseModel):
         if lambda_idt > 0:
             # G_A should be identity if real_B is fed.
             idt_A = self.netG_A(self.real_B)
-            loss_idt_A = self.criterionIdt(idt_A, self.real_B) * lambda_B * lambda_idt
+            loss_idt_A = self.criterionIdt(idt_A, self.real_Bm) * lambda_B * lambda_idt
             # G_B should be identity if real_A is fed.
             idt_B = self.netG_B(self.real_A)
-            loss_idt_B = self.criterionIdt(idt_B, self.real_A) * lambda_A * lambda_idt
+            loss_idt_B = self.criterionIdt(idt_B, self.real_Am) * lambda_A * lambda_idt
 
             self.idt_A = idt_A.data
             self.idt_B = idt_B.data
@@ -154,12 +173,20 @@ class CycleGANModel(BaseModel):
         loss_G_B = self.criterionGAN(pred_fake, True)
 
         # Forward cycle loss
-        rec_A = self.netG_B(fake_B)
-        loss_cycle_A = self.criterionCycle(rec_A, self.real_A) * lambda_A
+        if self.opt.input_nc == 4:
+            fake_B = Variable(torch.cat((fake_B.data.cpu(),self.gt_A),dim=1))
+            rec_A = self.netG_B(fake_B)
+        else:
+            rec_A = self.netG_B(fake_B)
+        loss_cycle_A = self.criterionCycle(rec_A, self.real_Am) * lambda_A
 
         # Backward cycle loss
-        rec_B = self.netG_A(fake_A)
-        loss_cycle_B = self.criterionCycle(rec_B, self.real_B) * lambda_B
+        if self.opt.input_nc == 4:
+            fake_A = Variable(torch.cat((fake_A.data.cpu(),self.gt_B),dim=1))
+            rec_B = self.netG_A(fake_A)
+        else:
+            rec_B = self.netG_A(fake_A)
+        loss_cycle_B = self.criterionCycle(rec_B, self.real_Bm) * lambda_B
         # combined loss
         loss_G = loss_G_A + loss_G_B + loss_cycle_A + loss_cycle_B + loss_idt_A + loss_idt_B
         loss_G.backward()
@@ -199,14 +226,16 @@ class CycleGANModel(BaseModel):
         return ret_errors
 
     def get_current_visuals(self):
-        real_A = util.tensor2im(self.input_A)
+        real_A = util.tensor2im(self.input_A[:,0:3,:,:])
         fake_B = util.tensor2im(self.fake_B)
         rec_A = util.tensor2im(self.rec_A)
-        real_B = util.tensor2im(self.input_B)
+        gt_A = util.tensor2im(self.gt_A)
+        real_B = util.tensor2im(self.input_B[:,0:3,:,:])
         fake_A = util.tensor2im(self.fake_A)
         rec_B = util.tensor2im(self.rec_B)
-        ret_visuals = OrderedDict([('real_A', real_A), ('fake_B', fake_B), ('rec_A', rec_A),
-                                   ('real_B', real_B), ('fake_A', fake_A), ('rec_B', rec_B)])
+        gt_B = util.tensor2im(self.gt_B)
+        ret_visuals = OrderedDict([('real_A', real_A), ('fake_B', fake_B), ('rec_A', rec_A), ('gt_A', gt_A),
+                                   ('real_B', real_B), ('fake_A', fake_A), ('rec_B', rec_B), ('gt_B', gt_B)])
         if self.opt.isTrain and self.opt.lambda_identity > 0.0:
             ret_visuals['idt_A'] = util.tensor2im(self.idt_A)
             ret_visuals['idt_B'] = util.tensor2im(self.idt_B)

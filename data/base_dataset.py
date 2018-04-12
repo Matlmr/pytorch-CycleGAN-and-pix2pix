@@ -1,8 +1,6 @@
 import torch.utils.data as data
 from PIL import Image
 import torchvision.transforms as transforms
-import data.custom_transforms as tr
-
 
 #Setting parameters
 relax_crop = 50
@@ -23,7 +21,8 @@ def get_transform(opt):
     transform_list = []
     if opt.resize_or_crop == 'resize_and_crop':
         osize = [opt.loadSize, opt.loadSize]
-        transform_list.append(transforms.Scale(osize, Image.BICUBIC))
+        #transform_list.append(transforms.Scale(osize, Image.BICUBIC))
+        transform_list.append(transforms.Resize(osize, Image.BICUBIC))
         transform_list.append(transforms.RandomCrop(opt.fineSize))
     elif opt.resize_or_crop == 'crop':
         transform_list.append(transforms.RandomCrop(opt.fineSize))
@@ -34,6 +33,8 @@ def get_transform(opt):
         transform_list.append(transforms.Lambda(
             lambda img: __scale_width(img, opt.loadSize)))
         transform_list.append(transforms.RandomCrop(opt.fineSize))
+    elif opt.resize_or_crop == 'manual':
+        pass
 
     if opt.isTrain and not opt.no_flip:
         transform_list.append(transforms.RandomHorizontalFlip())
@@ -43,9 +44,29 @@ def get_transform(opt):
                                             (0.5, 0.5, 0.5))]
     return transforms.Compose(transform_list)
 
-def get_crop(target):
-    transform_list =[]
-    transform_list.append(tr.CropFromMask(target, relax=relax_crop, zero_pad=zero_pad_crop))
+def get_transform_mask(opt):
+    transform_list = []
+    if opt.resize_or_crop == 'resize_and_crop':
+        osize = [opt.loadSize, opt.loadSize]
+        #transform_list.append(transforms.Scale(osize, Image.BICUBIC))
+        transform_list.append(transforms.Resize(osize, Image.BICUBIC))
+        transform_list.append(transforms.RandomCrop(opt.fineSize))
+    elif opt.resize_or_crop == 'crop':
+        transform_list.append(transforms.RandomCrop(opt.fineSize))
+    elif opt.resize_or_crop == 'scale_width':
+        transform_list.append(transforms.Lambda(
+            lambda img: __scale_width(img, opt.fineSize)))
+    elif opt.resize_or_crop == 'scale_width_and_crop':
+        transform_list.append(transforms.Lambda(
+            lambda img: __scale_width(img, opt.loadSize)))
+        transform_list.append(transforms.RandomCrop(opt.fineSize))
+    elif opt.resize_or_crop == 'manual':
+        pass
+
+    if opt.isTrain and not opt.no_flip:
+        transform_list.append(transforms.RandomHorizontalFlip())
+
+    transform_list += [transforms.ToTensor()]
     return transforms.Compose(transform_list)
 
 
