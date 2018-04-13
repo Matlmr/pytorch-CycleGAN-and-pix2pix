@@ -221,8 +221,6 @@ class CycleGANModel(BaseModel):
         self.backward_D_B()
         self.optimizer_D_B.step()
 
-        assert (1 == 0)
-
     def get_current_errors(self):
         ret_errors = OrderedDict([('D_A', self.loss_D_A), ('G_A', self.loss_G_A), ('Cyc_A', self.loss_cycle_A),
                                   ('D_B', self.loss_D_B), ('G_B', self.loss_G_B), ('Cyc_B', self.loss_cycle_B)])

@@ -17,7 +17,7 @@ model = create_model(opt)
 visualizer = Visualizer(opt)
 # create website
 if opt.my_html:
-    web_dir = os.path.join("../../../../home/lamarrem/public_html/synt2real/hair_croppad/")
+    web_dir = os.path.join("../../../../home/lamarrem/public_html/synt2real/TO_CHANGE/")
 else:
     web_dir = os.path.join(opt.results_dir, opt.name, '%s_%s' % (opt.phase, opt.which_epoch))
 webpage = html.HTML(web_dir, 'Experiment = %s, Phase = %s, Epoch = %s' % (opt.name, opt.phase, opt.which_epoch))
