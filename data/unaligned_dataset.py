@@ -15,8 +15,8 @@ class UnalignedDataset(BaseDataset):
         self.root = opt.dataroot
         self.dir_A = os.path.join(opt.dataroot, opt.phase + 'A')
         self.dir_B = os.path.join(opt.dataroot, opt.phase + 'B')
-        self.dir_gtA = os.path.join(opt.dataroot, 'gt' + 'A' + 'hair')
-        #self.dir_gtA = os.path.join(opt.dataroot, 'gt' + '2')
+        #self.dir_gtA = os.path.join(opt.dataroot, 'gt' + 'A' + 'hair')
+        self.dir_gtA = os.path.join(opt.dataroot, 'gt' + '2')
         self.dir_gtB = os.path.join(opt.dataroot, 'gt' + 'B')
 
         self.A_paths = make_dataset(self.dir_A)
@@ -36,8 +36,6 @@ class UnalignedDataset(BaseDataset):
             assert(self.A_size == self.gtA_size)
             assert(self.B_size == self.gtB_size)
         self.transform = get_transform(opt)
-        self.transform_mask = get_transform_mask(opt)
-
 
     def __getitem__(self, index):
         A_path = self.A_paths[index % self.A_size]
@@ -111,10 +109,19 @@ class UnalignedDataset(BaseDataset):
                 B_img = padded_img1
                 gtB_img =padded_img2
 
-        A = self.transform(A_img)
-        B = self.transform(B_img)
-        gtA = self.transform(gtA_img)
-        gtB = self.transform(gtB_img)
+        transform_mask = get_transform_mask(self.opt,A_img.size)
+        A = transform_mask(A_img)
+        transform_mask = get_transform_mask(self.opt,B_img.size)
+        B = transform_mask(B_img)
+        transform_mask = get_transform_mask(self.opt,gtA_img.size)
+        gtA = transform_mask(gtA_img)
+        transform_mask = get_transform_mask(self.opt,gtB_img.size)
+        gtB = transform_mask(gtB_img)
+        
+        #A = self.transform(A_img)
+        #B = self.transform(B_img)
+        #gtA = self.transform(gtA_img)
+        #gtB = self.transform(gtB_img)
 
         if self.opt.which_direction == 'BtoA':
             input_nc = self.opt.output_nc

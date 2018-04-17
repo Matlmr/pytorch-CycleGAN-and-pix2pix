@@ -44,7 +44,7 @@ def get_transform(opt):
                                             (0.5, 0.5, 0.5))]
     return transforms.Compose(transform_list)
 
-def get_transform_mask(opt):
+def get_transform_mask(opt, sizes):
     transform_list = []
     if opt.resize_or_crop == 'resize_and_crop':
         osize = [opt.loadSize, opt.loadSize]
@@ -61,12 +61,15 @@ def get_transform_mask(opt):
             lambda img: __scale_width(img, opt.loadSize)))
         transform_list.append(transforms.RandomCrop(opt.fineSize))
     elif opt.resize_or_crop == 'manual':
-        pass
-
+        osize = [(4 - sizes[0]%4) + sizes[0], (4 - sizes[1]%4) + sizes[1]]
+        transform_list.append(transforms.Resize(osize, Image.BICUBIC))
+        
     if opt.isTrain and not opt.no_flip:
         transform_list.append(transforms.RandomHorizontalFlip())
 
-    transform_list += [transforms.ToTensor()]
+    transform_list += [transforms.ToTensor(),
+                       transforms.Normalize((0.5, 0.5, 0.5),
+                                            (0.5, 0.5, 0.5))]
     return transforms.Compose(transform_list)
 
 

@@ -98,6 +98,7 @@ class CycleGANModel(BaseModel):
     def test(self):
         real_A = Variable(self.input_A, volatile=True)
         fake_B = self.netG_A(real_A)
+        print('real_A', real_A.size(), 'fake_B', fake_B.size(), 'gt_A', self.gt_A.size())
         fake_B = fake_B if self.opt.input_nc != 4 else Variable(torch.cat((fake_B.data.cpu(),self.gt_A),dim=1))
         self.rec_A = self.netG_B(fake_B).data
         self.fake_B = fake_B[:,0:3,:,:].data
@@ -238,10 +239,10 @@ class CycleGANModel(BaseModel):
         fake_A = util.tensor2im(self.fake_A)
         rec_B = util.tensor2im(self.rec_B)
         gt_B = util.tensor2im(self.gt_B)
-        #ret_visuals = OrderedDict([('real_A', real_A), ('fake_B', fake_B), ('rec_A', rec_A), ('gt_A', gt_A),
-        #                           ('real_B', real_B), ('fake_A', fake_A), ('rec_B', rec_B), ('gt_B', gt_B)])
-        ret_visuals = OrderedDict([('real_A', real_A), ('fake_B', fake_B), ('rec_A', rec_A),
-                                   ('real_B', real_B), ('fake_A', fake_A), ('rec_B', rec_B)])
+        ret_visuals = OrderedDict([('real_A', real_A), ('fake_B', fake_B), ('rec_A', rec_A), ('gt_A', gt_A),
+                                   ('real_B', real_B), ('fake_A', fake_A), ('rec_B', rec_B), ('gt_B', gt_B)])
+        #ret_visuals = OrderedDict([('real_A', real_A), ('fake_B', fake_B), ('rec_A', rec_A),
+        #                           ('real_B', real_B), ('fake_A', fake_A), ('rec_B', rec_B)])
         if self.opt.isTrain and self.opt.lambda_identity > 0.0:
             ret_visuals['idt_A'] = util.tensor2im(self.idt_A)
             ret_visuals['idt_B'] = util.tensor2im(self.idt_B)
