@@ -98,7 +98,6 @@ class CycleGANModel(BaseModel):
     def test(self):
         real_A = Variable(self.input_A, volatile=True)
         fake_B = self.netG_A(real_A)
-        print('real_A', real_A.size(), 'fake_B', fake_B.size(), 'gt_A', self.gt_A.size())
         fake_B = fake_B if self.opt.input_nc != 4 else Variable(torch.cat((fake_B.data.cpu(),self.gt_A),dim=1))
         self.rec_A = self.netG_B(fake_B).data
         self.fake_B = fake_B[:,0:3,:,:].data

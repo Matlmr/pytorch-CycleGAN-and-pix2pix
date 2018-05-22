@@ -1,1 +1,1 @@
-python test.py --dataroot ./datasets/synt2real --name synt2real_hair_croppad_gtInOut --model cycle_gan --phase test --no_dropout --gpu_ids 1 --input_nc 4 --crop_mask True --resize_or_crop 'manual' --how_many 1000
+python test.py --dataroot ./datasets/synt2real --name synt2real_hair_croppad --model cycle_gan --phase test --no_dropout --gpu_ids 2 --resize_or_crop 'manual' --how_many 3000

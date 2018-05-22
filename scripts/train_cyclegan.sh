@@ -1,1 +1,1 @@
-python train.py --dataroot ./datasets/synt2real --name synt2real_hair_croppad_gtInOut --model cycle_gan --pool_size 50 --batchSize 3 --no_dropout --display_id 0 --gpu_ids 2,3,4 --crop_mask True --input_nc 4 --mask_dis True
+python train.py --dataroot ./datasets/synt2real --name synt2real_hair_croppad_blur --model cycle_gan --pool_size 50 --batchSize 3 --no_dropout --display_id 0 --gpu_ids 0,1,2 --crop_mask True --input_nc 3 --blur True

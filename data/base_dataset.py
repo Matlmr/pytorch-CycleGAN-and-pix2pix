@@ -61,9 +61,10 @@ def get_transform_mask(opt, sizes):
             lambda img: __scale_width(img, opt.loadSize)))
         transform_list.append(transforms.RandomCrop(opt.fineSize))
     elif opt.resize_or_crop == 'manual':
-        osize = [(4 - sizes[0]%4) + sizes[0], (4 - sizes[1]%4) + sizes[1]]
-        transform_list.append(transforms.Resize(osize, Image.BICUBIC))
-        
+       # osize = [(4 - sizes[0]%4) + sizes[0], (4 - sizes[1]%4) + sizes[1]]
+       # transform_list.append(transforms.Resize(osize, Image.BICUBIC))
+        pass
+
     if opt.isTrain and not opt.no_flip:
         transform_list.append(transforms.RandomHorizontalFlip())
 

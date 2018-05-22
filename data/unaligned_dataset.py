@@ -1,7 +1,7 @@
 import os.path
 from data.base_dataset import BaseDataset, get_transform, get_transform_mask
 from data.image_folder import make_dataset
-from PIL import Image
+from PIL import Image, ImageFilter
 import random
 from numpy import arange
 from torchvision.transforms import ToPILImage, ToTensor
@@ -15,8 +15,8 @@ class UnalignedDataset(BaseDataset):
         self.root = opt.dataroot
         self.dir_A = os.path.join(opt.dataroot, opt.phase + 'A')
         self.dir_B = os.path.join(opt.dataroot, opt.phase + 'B')
-        #self.dir_gtA = os.path.join(opt.dataroot, 'gt' + 'A' + 'hair')
-        self.dir_gtA = os.path.join(opt.dataroot, 'gt' + '2')
+        self.dir_gtA = os.path.join(opt.dataroot, 'gt' + 'A' + 'hair')
+        #self.dir_gtA = os.path.join(opt.dataroot, 'gt' + '2')
         self.dir_gtB = os.path.join(opt.dataroot, 'gt' + 'B')
 
         self.A_paths = make_dataset(self.dir_A)
@@ -49,6 +49,11 @@ class UnalignedDataset(BaseDataset):
         # print('(A, B) = (%d, %d)' % (index_A, index_B))
         A_img = Image.open(A_path).convert('RGB')
         B_img = Image.open(B_path).convert('RGB')
+
+        if self.opt.blur:
+            A_img = A_img.filter(ImageFilter.BLUR)
+            B_img = B_img.filter(ImageFilter.BLUR)
+
         gtA_img = Image.open(gtA_path).convert('L')
         gtB_img = Image.open(gtB_path).convert('L')
 
